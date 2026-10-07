@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: restaurant
+      POSTGRES_USER: restaurant
+      POSTGRES_PASSWORD: restaurant
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      placement:
+        constraints:
+          - node.role == manager
+
+  redis:
+    image: redis:7-alpine
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: restaurant-orders-backend:latest
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant
+      SPRING_DATASOURCE_USERNAME: restaurant
+      SPRING_DATASOURCE_PASSWORD: restaurant
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+
+  frontend:
+    image: nginx:alpine
+    configs:
+      - source: frontend_index
+        target: /usr/share/nginx/html/index.html
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    configs:
+      - source: nginx_config
+        target: /etc/nginx/nginx.conf
+      - source: frontend_index
+        target: /usr/share/nginx/html/index.html
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  postgres_data:
+
+networks:
+  restaurant-net:
+    driver: overlay
+    attachable: true
+
+configs:
+  nginx_config:
+    file: ./nginx/nginx.conf
+  frontend_index:
+    file: ./frontend/index.html

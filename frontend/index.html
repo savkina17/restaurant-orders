@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление заказами — Ресторан</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #333; }
+        form { background: #f5f5f5; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        input, button { padding: 10px; font-size: 16px; margin-right: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #007bff; color: white; }
+        .status-NEW { color: #ff9800; font-weight: bold; }
+        .status-COOKING { color: #2196f3; font-weight: bold; }
+        .status-DONE { color: #4caf50; font-weight: bold; }
+    </style>
+</head>
+<body>
+<h1>🍕 Управление заказами ресторана</h1>
+
+<form id="orderForm">
+    <input type="text" id="dishName" placeholder="Название блюда" required>
+    <input type="number" id="quantity" placeholder="Кол-во" min="1" value="1" required>
+    <button type="submit">Создать заказ</button>
+</form>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Блюдо</th>
+        <th>Кол-во</th>
+        <th>Статус</th>
+        <th>Создан</th>
+    </tr>
+    </thead>
+    <tbody id="ordersTable"></tbody>
+</table>
+
+<script>
+    const API = '/api/orders';
+
+    async function loadOrders() {
+        const res = await fetch(API);
+        const orders = await res.json();
+        const tbody = document.getElementById('ordersTable');
+        tbody.innerHTML = orders.map(o => `
+                <tr>
+                    <td>${o.id}</td>
+                    <td>${o.dishName}</td>
+                    <td>${o.quantity}</td>
+                    <td class="status-${o.status}">${o.status}</td>
+                    <td>${new Date(o.createdAt).toLocaleString('ru-RU')}</td>
+                </tr>
+            `).join('');
+    }
+
+    document.getElementById('orderForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dishName = document.getElementById('dishName').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dishName, quantity })
+        });
+        document.getElementById('dishName').value = '';
+        document.getElementById('quantity').value = '1';
+        loadOrders();
+    });
+
+    loadOrders();
+    setInterval(loadOrders, 5000);
+</script>
+</body>
+</html>
