@@ -29,6 +29,46 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: restaurant-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: restaurant
+      RABBITMQ_DEFAULT_PASS: restaurant
+    ports:
+      - "15672:15672"       # UI доступен с хоста
+    networks:
+      - restaurant-net
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_port_connectivity" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: restaurant-prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - restaurant-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: restaurant-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - restaurant-net
+    depends_on:
+      - prometheus
+
   backend:
     build:
       context: .
@@ -38,6 +78,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/restaurant
@@ -76,3 +118,4 @@ volumes:
 networks:
   restaurant-net:
     driver: bridge
+

@@ -31,6 +31,20 @@ services:
       restart_policy:
         condition: on-failure
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: restaurant
+      RABBITMQ_DEFAULT_PASS: restaurant
+    ports:
+      - "15672:15672"
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
   backend:
     image: restaurant-orders-backend:latest
     environment:
@@ -39,6 +53,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: restaurant
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: restaurant
+      SPRING_RABBITMQ_PASSWORD: restaurant
     networks:
       - restaurant-net
     deploy:
@@ -78,6 +96,36 @@ services:
       restart_policy:
         condition: on-failure
 
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    configs:
+      - source: grafana_datasource
+        target: /etc/grafana/provisioning/datasources/datasource.yml
+    networks:
+      - restaurant-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
 volumes:
   postgres_data:
 
@@ -91,3 +139,7 @@ configs:
     file: ./nginx/nginx.conf
   frontend_index:
     file: ./frontend/index.html
+  prometheus_config:
+    file: ./prometheus/prometheus.yml
+  grafana_datasource:
+    file: ./grafana/datasources/datasource.yml

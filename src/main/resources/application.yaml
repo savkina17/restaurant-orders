@@ -1,24 +1,72 @@
 spring:
+  application:
+    name: restaurant-orders
+
+  # === База данных PostgreSQL ===
   datasource:
     url: jdbc:postgresql://postgres:5432/restaurant
     username: restaurant
     password: restaurant
+    driver-class-name: org.postgresql.Driver
+
+  # === JPA / Hibernate ===
   jpa:
     hibernate:
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  # === Redis (кэш) ===
   data:
     redis:
       host: redis
       port: 6379
+      timeout: 2000ms
 
+  # === RabbitMQ (брокер сообщений) ===
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: restaurant
+    password: restaurant
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 3000ms
+          max-attempts: 3
+
+# === Порт приложения ===
 server:
   port: 8080
 
+# === Actuator + Prometheus (метрики) ===
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: restaurant-orders
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# === Логирование ===
+logging:
+  level:
+    root: INFO
+    com.example.restaurant: DEBUG

@@ -1,9 +1,10 @@
 package com.example.restaurant.service;
 
+import com.example.restaurant.config.RabbitConfig;
 import com.example.restaurant.model.Order;
 import com.example.restaurant.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -14,13 +15,16 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final StringRedisTemplate redisTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     public Order create(Order order) {
         order.setStatus("NEW");
         order.setCreatedAt(LocalDateTime.now());
         Order saved = orderRepository.save(order);
-        redisTemplate.opsForList().leftPush("kitchen:queue", "Order #" + saved.getId());
+        rabbitTemplate.convertAndSend(
+                RabbitConfig.KITCHEN_QUEUE,
+                "Order #" + saved.getId() + ": " + saved.getDishName()
+        );
         return saved;
     }
 

@@ -68,6 +68,19 @@
       <artifactId>spring-boot-starter-test</artifactId>
       <scope>test</scope>
     </dependency>
+
+    <!-- RabbitMQ (брокер сообщений) -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-amqp</artifactId>
+    </dependency>
+
+    <!-- Micrometer + Prometheus (метрики) -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -103,8 +116,8 @@
           </excludes>
         </configuration>
       </plugin>
-
     </plugins>
   </build>
+
 
 </project>
